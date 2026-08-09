@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор Світлодіодів від Li-ion / LiFePO4</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --lifepo4-color: #f59e0b;
+            --author-yellow: #facc15;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 720px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 5px;
+            color: var(--accent);
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 18px;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        .control-group { margin-bottom: 20px; }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+            gap: 8px;
+        }
+
+        .btn {
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 9px 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .btn:hover { border-color: var(--accent); }
+
+        .btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .btn.active-lifepo4 {
+            background: var(--lifepo4-color);
+            color: #000;
+            border-color: var(--lifepo4-color);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .value-badge {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 6px;
+            min-width: 55px;
+            text-align: center;
+        }
+
+        .param-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .input-box {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-box label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .input-box input, .input-box select {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: bold;
+            outline: none;
+        }
+
+        /* Блок напруги АКБ */
+        .v-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .v-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .v-card-title { font-size: 0.7rem; color: var(--text-muted); }
+        .v-card-val { font-size: 1.0rem; font-weight: bold; margin-top: 2px; }
+
+        /* Інтерактивна схема SVG */
+        .preview-box {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 180px;
+            margin-bottom: 20px;
+        }
+
+        /* Картки результатів */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 500px) {
+            .results-grid, .param-row, .v-info-grid { grid-template-columns: 1fr; }
+        }
+
+        .result-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .result-card.highlight {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .result-title { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+        .result-value { font-size: 1.3rem; font-weight: bold; color: var(--accent); }
+        .result-card.highlight .result-value { color: var(--success); }
+        .result-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+        .status-alert {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+
+        .footer-info {
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(56, 189, 248, 0.05);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .author-footer {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--author-yellow);
+        }
+
+        .author-footer a {
+            color: var(--author-yellow);
+            text-decoration: underline;
+            transition: opacity 0.2s;
+        }
+
+        .author-footer a:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔋 Калькулятор LED від Акумулятора (1S-20S)</h1>
+    <p class="subtitle">Розрахунок резистора для Li-ion та LiFePO4 збірок</p>
+
+    <!-- 1. Хімія та Конфігурація S -->
+    <div class="control-group">
+        <div class="section-title">1. Хімія акумулятора</div>
+        <div class="btn-group">
+            <button class="btn active" id="btn-liion" onclick="setChem('liion')">Li-ion (3.7V)</button>
+            <button class="btn" id="btn-lifepo4" onclick="setChem('lifepo4')">LiFePO4 (3.2V)</button>
+        </div>
+
+        <div class="section-title" style="margin-top: 15px;">
+            Послідовне з'єднання (S): <span id="s-display" class="value-badge">1S</span>
+        </div>
+        <div class="slider-container">
+            <input type="range" id="s-slider" min="1" max="20" value="1" oninput="updateS(this.value)">
+        </div>
+
+        <!-- Інформація про напругу АКБ -->
+        <div class="v-info-grid">
+            <div class="v-card">
+                <div class="v-card-title">Мін. (Розряд)</div>
+                <div id="v-min" class="v-card-val" style="color: var(--danger);">3.0 V</div>
+            </div>
+            <div class="v-card">
+                <div class="v-card-title">Номінал</div>
+                <div id="v-nom" class="v-card-val" style="color: var(--accent);">3.7 V</div>
+            </div>
+            <div class="v-card">
+                <div class="v-card-title">Макс. (Заряд)</div>
+                <div id="v-max" class="v-card-val" style="color: var(--success);">4.2 V</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Тип світлодіода -->
+    <div class="control-group">
+        <div class="section-title">2. Формат / Потужність світлодіода</div>
+        <div class="btn-group" id="type-selector">
+            <button class="btn" onclick="setType('3mm')">3 мм</button>
+            <button class="btn active" onclick="setType('5mm')">5 мм</button>
+            <button class="btn" onclick="setType('10mm')">10 мм</button>
+            <button class="btn" onclick="setType('0.5W')">0.5 Вт</button>
+            <button class="btn" onclick="setType('1W')">1 Вт</button>
+            <button class="btn" onclick="setType('3W')">3 Вт</button>
+        </div>
+    </div>
+
+    <!-- 3. Колір світлодіода -->
+    <div class="control-group">
+        <div class="section-title">3. Колір випромінювання</div>
+        <div class="btn-group" id="color-selector">
+            <button class="btn active" onclick="setColor('red')">🔴 Червоний</button>
+            <button class="btn" onclick="setColor('yellow')">🟡 Жовтий</button>
+            <button class="btn" onclick="setColor('green')">🟢 Зелений</button>
+            <button class="btn" onclick="setColor('blue')">🔵 Синій</button>
+            <button class="btn" onclick="setColor('white')">⚪ Білий</button>
+            <button class="btn" onclick="setColor('ir')">📡 ІЧ</button>
+            <button class="btn" onclick="setColor('uv')">🟣 УФ</button>
+        </div>
+    </div>
+
+    <!-- Ручні параметри -->
+    <div class="param-row">
+        <div class="input-box">
+            <label>Падіння напруги $V_f$ (В):</label>
+            <input type="number" id="input-vf" step="0.1" min="0.5" max="5.0" onchange="manualParamChange()">
+        </div>
+        <div class="input-box">
+            <label>Робочий струм $I_f$ (мА):</label>
+            <input type="number" id="input-if" step="1" min="1" max="1500" onchange="manualParamChange()">
+        </div>
+    </div>
+
+    <!-- 4. Кількість і схема -->
+    <div class="control-group" style="margin-top: 15px;">
+        <div class="section-title">4. Кількість та схема з'єднання</div>
+        <div class="param-row">
+            <div class="input-box">
+                <label>Кількість LED ($N$):</label>
+                <input type="number" id="input-count" value="1" min="1" max="50" onchange="calculate()">
+            </div>
+            <div class="input-box">
+                <label>Схема включення:</label>
+                <select id="conn-type" onchange="calculate()">
+                    <option value="series">Послідовне</option>
+                    <option value="parallel">Паралельне</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Графічна схема SVG -->
+    <div class="section-title">Схема підключення та маркування</div>
+    <div class="preview-box">
+        <svg id="circuit-svg" width="100%" height="160" viewBox="0 0 500 160" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div id="status-alert" class="status-alert"></div>
+
+    <!-- Результати -->
+    <div class="section-title">Результати розрахунку (Розраховано за макс. напругою заряду)</div>
+    <div class="results-grid">
+        <div class="result-card">
+            <div class="result-title">Точний опір ($R$)</div>
+            <div id="res-exact" class="result-value">0 Ом</div>
+            <div class="result-note">Забезпечує безпеку при 100% заряді</div>
+        </div>
+        <div class="result-card highlight">
+            <div class="result-title">Стандарт E24</div>
+            <div id="res-e24" class="result-value">0 Ом</div>
+            <div id="res-color-code" class="result-note">Колір: —</div>
+        </div>
+        <div class="result-card">
+            <div class="result-title">Струм при розрядженому АКБ</div>
+            <div id="res-min-if" class="result-value">0 мА</div>
+            <div class="result-note">Яскравість трохи знизиться</div>
+        </div>
+        <div class="result-card highlight">
+            <div class="result-title">Рекомендована потужність</div>
+            <div id="res-rec-power" class="result-value">0.25 Вт</div>
+            <div class="result-note">З урахуванням запасу $2\times$</div>
+        </div>
+    </div>
+
+    <div class="footer-info">
+        💡 <strong>Примітка:</strong> Розрахунок резистора проводиться по **максимальній напрузі повністю зарядженого акумулятора**, щоб світлодіод не перегорів під час зарядки або одразу після зняття з ЗП.
+    </div>
+
+    <!-- Авторський блок -->
+    <div class="author-footer">
+        🛠️ Створено за ініціативи Dima Lasun з застосуванням джеміні.<br>
+        Моя група в FB «Ремонт електрообладнання»: 
+        <a href="https://facebook.com/groups/3145673675685047" target="_blank" rel="noopener noreferrer">facebook.com/groups/3145673675685047</a>
+    </div>
+</div>
+
+<script>
+    const ledSpecs = {
+        'red':    { hex: '#ef4444', vf: { '3mm': 2.0, '5mm': 2.0, '10mm': 2.1, '0.5W': 2.2, '1W': 2.4, '3W': 2.6 }, if: { '3mm': 15, '5mm': 20, '10mm': 25, '0.5W': 150, '1W': 350, '3W': 700 } },
+        'yellow': { hex: '#eab308', vf: { '3mm': 2.1, '5mm': 2.1, '10mm': 2.2, '0.5W': 2.3, '1W': 2.5, '3W': 2.7 }, if: { '3mm': 15, '5mm': 20, '10mm': 25, '0.5W': 150, '1W': 350, '3W': 700 } },
+        'green':  { hex: '#22c55e', vf: { '3mm': 3.1, '5mm': 3.2, '10mm': 3.3, '0.5W': 3.3, '1W': 3.4, '3W': 3.6 }, if: { '3mm': 20, '5mm': 20, '10mm': 30, '0.5W': 150, '1W': 350, '3W': 700 } },
+        'blue':   { hex: '#3b82f6', vf: { '3mm': 3.0, '5mm': 3.1, '10mm': 3.2, '0.5W': 3.2, '1W': 3.4, '3W': 3.6 }, if: { '3mm': 20, '5mm': 20, '10mm': 30, '0.5W': 150, '1W': 350, '3W': 700 } },
+        'white':  { hex: '#f8fafc', vf: { '3mm': 3.0, '5mm': 3.2, '10mm': 3.3, '0.5W': 3.3, '1W': 3.4, '3W': 3.6 }, if: { '3mm': 20, '5mm': 20, '10mm': 30, '0.5W': 150, '1W': 350, '3W': 700 } },
+        'ir':     { hex: '#8b5cf6', vf: { '3mm': 1.4, '5mm': 1.5, '10mm': 1.6, '0.5W': 1.7, '1W': 1.8, '3W': 2.0 }, if: { '3mm': 20, '5mm': 50, '10mm': 100, '0.5W': 150, '1W': 350, '3W': 700 } },
+        'uv':     { hex: '#a855f7', vf: { '3mm': 3.2, '5mm': 3.4, '10mm': 3.5, '0.5W': 3.6, '1W': 3.8, '3W': 4.0 }, if: { '3mm': 20, '5mm': 20, '10mm': 30, '0.5W': 150, '1W': 350, '3W': 700 } }
+    };
+
+    const chemSpecs = {
+        'liion':   { min: 3.0, nom: 3.7, max: 4.2 },
+        'lifepo4': { min: 2.5, nom: 3.2, max: 3.65 }
+    };
+
+    const e24Base = [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.7, 3.0, 3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1];
+
+    const colorMap = [
+        { name: 'Чорний', hex: '#000000' },
+        { name: 'Коричневий', hex: '#8B4513' },
+        { name: 'Червоний', hex: '#FF0000' },
+        { name: 'Оранжевий', hex: '#FFA500' },
+        { name: 'Жовтий', hex: '#FFFF00' },
+        { name: 'Зелений', hex: '#008000' },
+        { name: 'Синій', hex: '#0000FF' },
+        { name: 'Фіолетовий', hex: '#8A2BE2' },
+        { name: 'Сірий', hex: '#808080' },
+        { name: 'Білий', hex: '#FFFFFF' }
+    ];
+
+    let state = {
+        chem: 'liion',
+        s: 1,
+        type: '5mm',
+        color: 'red',
+        vf: 2.0,
+        if: 20
+    };
+
+    function setChem(c) {
+        state.chem = c;
+        document.getElementById('btn-liion').className = c === 'liion' ? 'btn active' : 'btn';
+        document.getElementById('btn-lifepo4').className = c === 'lifepo4' ? 'btn active-lifepo4' : 'btn';
+        const slider = document.getElementById('s-slider');
+        slider.style.accentColor = c === 'lifepo4' ? 'var(--lifepo4-color)' : 'var(--accent)';
+        calculateVoltages();
+    }
+
+    function updateS(val) {
+        state.s = parseInt(val);
+        document.getElementById('s-display').innerText = state.s + 'S';
+        calculateVoltages();
+    }
+
+    function calculateVoltages() {
+        const spec = chemSpecs[state.chem];
+        const vMin = (spec.min * state.s).toFixed(1);
+        const vNom = (spec.nom * state.s).toFixed(1);
+        const vMax = (spec.max * state.s).toFixed(2);
+
+        document.getElementById('v-min').innerText = vMin + ' V';
+        document.getElementById('v-nom').innerText = vNom + ' V';
+        document.getElementById('v-max').innerText = vMax + ' V';
+
+        calculate();
+    }
+
+    function setType(t) {
+        state.type = t;
+        updateActiveGroup('#type-selector', t);
+        autoFillParams();
+    }
+
+    function setColor(c) {
+        state.color = c;
+        updateActiveGroup('#color-selector', c);
+        autoFillParams();
+    }
+
+    function updateActiveGroup(selector, key) {
+        const btns = document.querySelectorAll(`${selector} .btn`);
+        btns.forEach(b => {
+            if (b.getAttribute('onclick').includes(`'${key}'`)) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+    }
+
+    function autoFillParams() {
+        const spec = ledSpecs[state.color];
+        state.vf = spec.vf[state.type];
+        state.if = spec.if[state.type];
+
+        document.getElementById('input-vf').value = state.vf;
+        document.getElementById('input-if').value = state.if;
+        calculate();
+    }
+
+    function manualParamChange() {
+        state.vf = parseFloat(document.getElementById('input-vf').value) || 0;
+        state.if = parseFloat(document.getElementById('input-if').value) || 0;
+        calculate();
+    }
+
+    function findE24(R) {
+        if (R <= 0) return 0;
+        let mult = Math.pow(10, Math.floor(Math.log10(R)));
+        let val = R / mult;
+        if (val < 1.0) { val *= 10; mult /= 10; }
+
+        let closest = e24Base[0];
+        let minDiff = Math.abs(val - closest);
+
+        for (let i = 1; i < e24Base.length; i++) {
+            let diff = Math.abs(val - e24Base[i]);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = e24Base[i];
+            }
+        }
+        return +(closest * mult).toFixed(2);
+    }
+
+    function getResistorColorBands(R) {
+        if (R <= 0) return { bands: [], text: '—' };
+
+        let rVal = R;
+        let multiplier = 0;
+
+        if (rVal < 10) {
+            let d1 = Math.floor(rVal);
+            let d2 = Math.round((rVal - d1) * 10);
+            return {
+                bands: [colorMap[d1], colorMap[d2], { name: 'Золотий', hex: '#FFD700' }, { name: 'Золотий (5%)', hex: '#FFD700' }],
+                text: `${colorMap[d1].name}, ${colorMap[d2].name}, Золотий`
+            };
+        }
+
+        while (rVal >= 100) {
+            rVal /= 10;
+            multiplier++;
+        }
+
+        let rounded = Math.round(rVal);
+        let d1 = Math.floor(rounded / 10);
+        let d2 = rounded % 10;
+
+        let b1 = colorMap[d1] || colorMap[0];
+        let b2 = colorMap[d2] || colorMap[0];
+        let b3 = colorMap[multiplier] || colorMap[0];
+
+        return {
+            bands: [b1, b2, b3, { name: 'Золотий (5%)', hex: '#FFD700' }],
+            text: `${b1.name}, ${b2.name}, ${b3.name}`
+        };
+    }
+
+    function calculate() {
+        const count = parseInt(document.getElementById('input-count').value) || 1;
+        const conn = document.getElementById('conn-type').value;
+        const alertBox = document.getElementById('status-alert');
+
+        const spec = chemSpecs[state.chem];
+        const vMax = spec.max * state.s;
+        const vMin = spec.min * state.s;
+
+        let totalVf = (conn === 'series') ? (state.vf * count) : state.vf;
+        let totalIf = (conn === 'parallel') ? (state.if * count) : state.if;
+        let totalIfAmps = totalIf / 1000.0;
+
+        alertBox.style.display = 'none';
+
+        if (vMax <= totalVf) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+            alertBox.style.border = '1px solid var(--danger)';
+            alertBox.style.color = '#fca5a5';
+            alertBox.innerText = `⚠️ Напруга АКБ (${vMax.toFixed(1)}V) недостатня для падіння напруги на LED (${totalVf.toFixed(1)}V)! Зменшіть кількість світлодіодів у послідовній гілці.`;
+
+            document.getElementById('res-exact').innerText = '—';
+            document.getElementById('res-e24').innerText = '—';
+            document.getElementById('res-color-code').innerText = 'Колір: —';
+            document.getElementById('res-min-if').innerText = '0 мА';
+            document.getElementById('res-rec-power').innerText = '—';
+            drawCircuit(0, [colorMap[8], colorMap[8], colorMap[8], colorMap[8]], false, vMax);
+            return;
+        }
+
+        let rExact = (vMax - totalVf) / totalIfAmps;
+        let rE24 = findE24(rExact);
+
+        let minIfAmps = (vMin - totalVf) / rE24;
+        let minIfMa = minIfAmps > 0 ? (minIfAmps * 1000 / (conn === 'parallel' ? count : 1)).toFixed(1) : 0;
+
+        let pRes = Math.pow(totalIfAmps, 2) * rE24;
+        let pRec = pRes * 2.0;
+
+        let pRecStd = 0.125;
+        if (pRec > 0.125 && pRec <= 0.25) pRecStd = 0.25;
+        else if (pRec > 0.25 && pRec <= 0.5) pRecStd = 0.5;
+        else if (pRec > 0.5 && pRec <= 1.0) pRecStd = 1.0;
+        else if (pRec > 1.0 && pRec <= 2.0) pRecStd = 2.0;
+        else if (pRec > 2.0) pRecStd = Math.ceil(pRec);
+
+        let rExactStr = rExact >= 1000 ? (rExact/1000).toFixed(2) + ' кОм' : rExact.toFixed(1) + ' Ом';
+        let rE24Str = rE24 >= 1000 ? (rE24/1000).toFixed(2) + ' кОм' : rE24 + ' Ом';
+
+        document.getElementById('res-exact').innerText = rExactStr;
+        document.getElementById('res-e24').innerText = rE24Str;
+
+        let colorCodeData = getResistorColorBands(rE24);
+        document.getElementById('res-color-code').innerText = 'Колір: ' + colorCodeData.text;
+
+        document.getElementById('res-min-if').innerText = minIfMa + ' мА';
+        document.getElementById('res-rec-power').innerText = pRecStd + ' Вт';
+
+        drawCircuit(rE24, colorCodeData.bands, true, vMax);
+    }
+
+    function drawCircuit(rVal, bands, isWorking, vMax) {
+        const svg = document.getElementById('circuit-svg');
+        const ledHex = ledSpecs[state.color].hex;
+        
+        let band1 = bands[0] ? bands[0].hex : '#666';
+        let band2 = bands[1] ? bands[1].hex : '#666';
+        let band3 = bands[2] ? bands[2].hex : '#666';
+        let band4 = bands[3] ? bands[3].hex : '#FFD700';
+
+        let ledGlow = isWorking ? `box-shadow: 0 0 12px ${ledHex}; filter: drop-shadow(0 0 8px ${ledHex});` : '';
+
+        svg.innerHTML = `
+            <!-- Джерело живлення АКБ -->
+            <text x="20" y="25" fill="#94a3b8" font-size="11" font-weight="bold">+ ${state.s}S (${vMax.toFixed(1)}V Max)</text>
+            <line x1="50" y1="35" x2="50" y2="80" stroke="#38bdf8" stroke-width="3" />
+            <circle cx="50" cy="35" r="5" fill="#38bdf8" />
+
+            <line x1="50" y1="80" x2="110" y2="80" stroke="#94a3b8" stroke-width="3" />
+
+            <!-- Резистор -->
+            <g transform="translate(110, 65)">
+                <line x1="0" y1="15" x2="15" y2="15" stroke="#cbd5e1" stroke-width="3" />
+                <line x1="75" y1="15" x2="90" y2="15" stroke="#cbd5e1" stroke-width="3" />
+                <rect x="15" y="3" width="60" height="24" rx="4" fill="#d1d5db" stroke="#4b5563" stroke-width="1.5"/>
+                <rect x="25" y="3" width="5" height="24" fill="${band1}" />
+                <rect x="34" y="3" width="5" height="24" fill="${band2}" />
+                <rect x="43" y="3" width="5" height="24" fill="${band3}" />
+                <rect x="58" y="3" width="5" height="24" fill="${band4}" />
+            </g>
+            <text x="120" y="55" fill="#f8fafc" font-size="11" font-weight="bold">R = ${rVal} Ом</text>
+
+            <line x1="200" y1="80" x2="270" y2="80" stroke="#94a3b8" stroke-width="3" />
+
+            <!-- Світлодіод -->
+            <g transform="translate(270, 50)" style="${ledGlow}">
+                <line x1="0" y1="30" x2="20" y2="30" stroke="#cbd5e1" stroke-width="3" />
+                <line x1="50" y1="30" x2="70" y2="30" stroke="#cbd5e1" stroke-width="3" />
+                
+                <polygon points="20,15 20,45 45,30" fill="${isWorking ? ledHex : '#334155'}" stroke="${ledHex}" stroke-width="2"/>
+                <line x1="45" y1="15" x2="45" y2="45" stroke="${ledHex}" stroke-width="3" />
+
+                ${isWorking ? `
+                    <line x1="32" y1="12" x2="42" y2="2" stroke="${ledHex}" stroke-width="2" />
+                    <polygon points="42,2 36,4 40,8" fill="${ledHex}" />
+                    <line x1="42" y1="17" x2="52" y2="7" stroke="${ledHex}" stroke-width="2" />
+                    <polygon points="52,7 46,9 50,13" fill="${ledHex}" />
+                ` : ''}
+            </g>
+            <text x="270" y="105" fill="#94a3b8" font-size="11">LED (${state.vf}V, ${state.if}mA)</text>
+
+            <line x1="340" y1="80" x2="420" y2="80" stroke="#94a3b8" stroke-width="3" />
+            <line x1="420" y1="80" x2="420" y2="120" stroke="#94a3b8" stroke-width="3" />
+
+            <!-- Земля (GND) -->
+            <g transform="translate(405, 120)">
+                <line x1="0" y1="0" x2="30" y2="0" stroke="#94a3b8" stroke-width="3" />
+                <line x1="5" y1="6" x2="25" y2="6" stroke="#94a3b8" stroke-width="2.5" />
+                <line x1="10" y1="12" x2="20" y2="12" stroke="#94a3b8" stroke-width="2" />
+                <text x="-5" y="28" fill="#94a3b8" font-size="11" font-weight="bold">GND (0V)</text>
+            </g>
+        `;
+    }
+
+    // Старт
+    setChem('liion');
+    autoFillParams();
+</script>
+
+</body>
+</html>
